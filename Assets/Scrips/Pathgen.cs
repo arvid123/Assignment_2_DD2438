@@ -21,7 +21,7 @@ namespace Assets.Scrips
         List<Waypoint> enemy_list = new List<Waypoint>();
 
 
-        public Pathgen(TerrainManager t, float tp, float mtv, string vehicle, GameObject[] enemies, GameObject[] friends)
+        public Pathgen(TerrainManager t, float tp, float mtv, string vehicle, List<Waypoint> enemies, List<Waypoint> friends)
         {
             terrain_manager = t;
             terrain_padding = tp;
@@ -33,14 +33,8 @@ namespace Assets.Scrips
             my_path = new List<Vector3>();
             Debug.DrawRay(start_pos, Vector3.forward, Color.magenta, 1000f);
 
-            foreach(var enemy in enemies)
-            {
-                enemy_list.Add(new Waypoint(enemy.transform.position));
-            }
-            foreach(var friend in friends)
-            {
-                friend_list.Add(new Waypoint(friend.transform.position));
-            }
+            friend_list = friends;
+            enemy_list = enemies;
 
 
             // Plan your path here
@@ -159,7 +153,7 @@ namespace Assets.Scrips
                     }
                 }
             }
-            Debug.Log(String.Format("{0} points in the graph", wps.Count));
+            //Debug.Log(String.Format("{0} points in the graph", wps.Count));
 
             foreach(var point in wps)
             {
@@ -208,12 +202,83 @@ namespace Assets.Scrips
             return new List<Waypoint>(optimal_path).ConvertAll(x => x.pos);
         }
 
+        public List<Vector3> tspSolver(List<Waypoint> targets)
+        {
+            List<Vector3> path = new List<Vector3>();
+            var start = targets[0];
+            bool[] marked = new bool[targets.Count];
+            path.Add(start.pos);
+            marked[0] = true;
+
+            while (true)
+            {
+                Waypoint best_target = start;
+                float lowest_cost = float.PositiveInfinity;
+
+                foreach (var target in targets)
+                {
+                    if (!marked[targets.IndexOf(target)])
+                    {
+                        float cost = pathCost(start, target);
+                        if (cost < lowest_cost)
+                        {
+                            lowest_cost = cost;
+                            best_target = target;
+                            marked[targets.IndexOf(target)] = true;
+                            start = target;
+                        }
+                    }
+                }
+                path.Add(best_target.pos);
+
+                bool allMarked = true;
+                foreach(bool mark in marked)
+                {
+                    if (!mark)
+                    {
+                        allMarked = false;
+                    }
+                }
+                if (allMarked)
+                {
+                    break;
+                }
+            }
+
+            List<Vector3> smooth_path = new List<Vector3>();
+            for(int i = 1; i < path.Count; i++)
+            {
+                smooth_path.AddRange(getBezierPathList(path[i-1], path[i]));
+            }
+
+            return smooth_path;
+        }
+
+        public float pathCost(Waypoint start, Waypoint goal)
+        {
+            var path = A_star(start, goal, wps, car_g, car_h);
+            float sum_g = 0;
+            Waypoint old_wp = path[0];
+            foreach(var wp in path)
+            {
+                sum_g += Vector3.Distance(old_wp.pos, wp.pos);
+                old_wp = wp;
+            }
+            return sum_g;
+        }
+
         // https://en.wikipedia.org/wiki/A*_search_algorithm 
         public List<Waypoint> A_star(Waypoint start, Waypoint goal, List<Waypoint> waypoints, Func<Waypoint, Waypoint, Waypoint, Waypoint, List<Waypoint>, double> g, Func<Waypoint, Waypoint, double> h)
         {
 
             SimplePriorityQueue<Waypoint, double> openSet = new SimplePriorityQueue<Waypoint, double>();
             openSet.Enqueue(start, double.PositiveInfinity);
+
+            foreach(var point in waypoints)
+            {
+                point.gScore = double.PositiveInfinity;
+                point.cameFrom = null;
+            }
             start.gScore = 0;
 
             while (openSet.Count > 0)
@@ -226,13 +291,8 @@ namespace Assets.Scrips
 
                 foreach (var neighbor in current.neighbors)
                 {
-                    //Debug.DrawLine(current.pos, neighbor.pos, Color.green, 100f);
+                    Debug.DrawLine(current.pos, neighbor.pos, Color.green, 100f);
                     double tentative_gScore = current.gScore + g(start, goal, current, neighbor, waypoints);
-                    if (current.Equals(start))
-                    {
-                        Debug.Log(String.Format("Neighbor coords: {0}, {1}", neighbor.pos.x, neighbor.pos.z));
-                        Debug.Log(String.Format("G score: {0}", tentative_gScore));
-                    }
 
                     if (tentative_gScore < neighbor.gScore)
                     {
@@ -286,7 +346,7 @@ namespace Assets.Scrips
             goal.drone_goal_vel = Vector3.forward * 15f;
             start.drone_goal_vel = Vector3.forward * 15f;
 
-            while (current.cameFrom.cameFrom != null)
+            while (current.cameFrom != null && current.cameFrom.cameFrom != null)
             {
                 Waypoint next = current.cameFrom;
                 Waypoint next_next = next.cameFrom;
@@ -298,7 +358,10 @@ namespace Assets.Scrips
                 current = next;
             }
             path.Add(current);
-            path.Add(current.cameFrom);
+            if (current.cameFrom != null)
+            {
+                path.Add(current.cameFrom);
+            }
             path.Reverse();
 
             return path;
@@ -375,13 +438,13 @@ namespace Assets.Scrips
                 if (wp.pos.Equals(start))
                 {
                     start_wp = wp;
-                    Debug.Log("Start found");
+                    //Debug.Log("Start found");
                 }
 
                 if (wp.pos.Equals(goal))
                 {
                     goal_wp = wp;
-                    Debug.Log("GOal found");
+                    //Debug.Log("GOal found");
                 }
             }
             

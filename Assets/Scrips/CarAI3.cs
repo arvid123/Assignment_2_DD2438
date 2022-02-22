@@ -16,59 +16,129 @@ namespace UnityStandardAssets.Vehicles.Car
 
         public GameObject[] friends;
         public GameObject[] enemies;
-        List<Vector3> route { get; set; }
+        List<Waypoint> friend_list = new List<Waypoint>();
+        List<Waypoint> enemy_list = new List<Waypoint>();
 
-        private void Start()
+        List<List<Vector3>> good_routes = new List<List<Vector3>>();
+
+        Waypoint start = null;
+        List<Waypoint> route = new List<Waypoint>();
+
+        private void Awake()
         {
             // get the car controller
             m_Car = GetComponent<CarController>();
             terrain_manager = terrain_manager_game_object.GetComponent<TerrainManager>();
 
-
             // note that both arrays will have holes when objects are destroyed
             // but for initial planning they should work
             friends = GameObject.FindGameObjectsWithTag("Player");
+
+
+            foreach (var friend in friends)
+            {
+                var friend_start = new Waypoint(friend.transform.position);
+                if (friend.transform.position.x == transform.position.x && friend.transform.position.z == transform.position.z)
+                {
+                    start = friend_start;
+                }
+                friend_list.Add(friend_start);
+            }
+
+            // Plan your path here
+            // ...
+            route.Add(start);
+        }
+        private void Start()
+        {
+
             enemies = GameObject.FindGameObjectsWithTag("Enemy");
+            foreach (var enemy in enemies)
+            {
+                enemy_list.Add(new Waypoint(enemy.transform.position));
+            }
+
             foreach (GameObject obj in enemies)
             {
                 Debug.DrawLine(transform.position, obj.transform.position, Color.black, 10f);
             }
 
-            route = new List<Vector3>();
+            Debug.Log(transform.position.x);
 
-            // Plan your path here
-            // ...
+            Debug.Log(friends[0].transform.position.x);
+            Debug.Log(friends[1].transform.position.x);
+            Debug.Log(friends[2].transform.position.x);
+
             int i = 0;
-            route.Add(transform.position);
-
-            foreach(var enemy in enemies)
+            foreach (var enemy in enemy_list)
             {
-                friends[i].GetComponent<CarAI3>().route.Add(enemy.transform.position);
+                friends[i].GetComponent<CarAI3>().route.Add(enemy);
                 i = (i + 1) % 3;
             }
-            Debug.Log(friends[0].GetComponent<CarAI3>().route[0]);
-            Debug.Log(friends[1].GetComponent<CarAI3>().route[0]);
-            Debug.Log(friends[2].GetComponent<CarAI3>().route[0]);
 
-            Pathgen pg = new Pathgen(terrain_manager, 4f, 5f, "car", enemies, friends);
-            List<Vector3> good_route = new List<Vector3>();
-
-            for(i = 0; i < route.Count-1; i++)
+            for (int j = 0; j < 3; j++)
             {
-                pg = new Pathgen(terrain_manager, 4f, 5f, "car", enemies, friends);
-                var segment = pg.getBezierPathList(route[i], route[i + 1]);
-                good_route.AddRange(segment);
+                Debug.Log(String.Format("Route for car nr: {0}", j));
+                foreach(Waypoint wp in friends[j].GetComponent<CarAI3>().route)
+                {
+                    Debug.Log(String.Format("{0}, {1}", wp.pos.x, wp.pos.z));
+                }
             }
-            
-            //Debug.Log(String.Format("Goal at {0}, {1}", route[1].x, route[1].z));
-            
-            var old = good_route[0];
-            Debug.Log(good_route.Count);
-            foreach(Vector3 pos in good_route)
+
+            for(int j = 1; j < 2; j++)
             {
-                Debug.Log("Long");
-                Debug.DrawLine(old, pos, Color.blue, 1000f);
-                old = pos;
+                Pathgen pg = new Pathgen(terrain_manager, 4f, 5f, "car", enemy_list, friend_list);
+                var good_route = pg.tspSolver(friends[j].GetComponent<CarAI3>().route);
+                good_routes.Add(good_route);
+                
+                /*var old = good_route[0];
+                //Debug.Log(good_route.Count);
+                foreach (Vector3 pos in good_route)
+                {
+                    if(transform.position.x == 210)
+                    {
+                        Debug.DrawLine(old, pos, Color.blue, 1000f);
+                    }
+                    else if (transform.position.x == 220)
+                    {
+
+                        Debug.DrawLine(old, pos, Color.cyan, 1000f);
+                    }
+                    else
+                    {
+
+                        Debug.DrawLine(old, pos, Color.red, 1000f);
+                    }
+                    old = pos;
+                }*/
+            }
+
+
+
+            //Debug.Log(String.Format("Goal at {0}, {1}", route[1].x, route[1].z));
+            foreach (var good_route in good_routes)
+            {
+                var old = good_route[0];
+                //Debug.Log(good_route.Count);
+                foreach (Vector3 pos in good_route)
+                {
+                    if (good_routes.IndexOf(good_route) == 0)
+                    {
+                        Debug.DrawLine(old, pos, Color.blue, 1000f);
+                    }
+                    else if (good_routes.IndexOf(good_route) == 1)
+                    {
+
+                        Debug.DrawLine(old, pos, Color.cyan, 1000f);
+                    }
+                    else
+                    {
+
+                        Debug.DrawLine(old, pos, Color.red, 1000f);
+                    }
+                    //Debug.DrawLine(old, pos, Color.blue, 1000f);
+                    old = pos;
+                }
             }
         }
 
@@ -126,7 +196,7 @@ namespace UnityStandardAssets.Vehicles.Car
 
 
             // this is how you control the car
-            Debug.Log("Steering:" + steering + " Acceleration:" + acceleration);
+            //Debug.Log("Steering:" + steering + " Acceleration:" + acceleration);
             m_Car.Move(steering, acceleration, acceleration, 0f);
             //m_Car.Move(0f, -1f, 1f, 0f);
 
