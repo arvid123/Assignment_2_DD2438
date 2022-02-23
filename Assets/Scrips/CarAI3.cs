@@ -14,15 +14,14 @@ namespace UnityStandardAssets.Vehicles.Car
         public GameObject terrain_manager_game_object;
         TerrainManager terrain_manager;
 
-        public GameObject[] friends;
-        public GameObject[] enemies;
-        List<Waypoint> friend_list = new List<Waypoint>();
-        List<Waypoint> enemy_list = new List<Waypoint>();
+        static public GameObject[] friends;
+        static public GameObject[] enemies;
+        List<Vector3> friend_list = new List<Vector3>();
+        List<Vector3> enemy_list = new List<Vector3>();
+        List<int>[] partitions = new List<int>[3]; 
 
-        List<List<Vector3>> good_routes = new List<List<Vector3>>();
 
-        Waypoint start = null;
-        List<Waypoint> route = new List<Waypoint>();
+        List<List<Vector3>> good_routes = new List<List<Vector3>>(3);
 
         private void Awake()
         {
@@ -34,20 +33,23 @@ namespace UnityStandardAssets.Vehicles.Car
             // but for initial planning they should work
             friends = GameObject.FindGameObjectsWithTag("Player");
 
-
-            foreach (var friend in friends)
+            for (int i = 0; i < 3; i++)
             {
-                var friend_start = new Waypoint(friend.transform.position);
-                if (friend.transform.position.x == transform.position.x && friend.transform.position.z == transform.position.z)
-                {
-                    start = friend_start;
-                }
+                partitions[i] = new List<int>();
+            }
+
+
+            for(int i = 0; i < friends.Length; i++)
+            {
+                var friend_start = friends[i].transform.position;
                 friend_list.Add(friend_start);
+                partitions[i].Add(i);
             }
 
             // Plan your path here
             // ...
-            route.Add(start);
+
+            
         }
         private void Start()
         {
@@ -55,40 +57,26 @@ namespace UnityStandardAssets.Vehicles.Car
             enemies = GameObject.FindGameObjectsWithTag("Enemy");
             foreach (var enemy in enemies)
             {
-                enemy_list.Add(new Waypoint(enemy.transform.position));
+                enemy_list.Add(enemy.transform.position);
             }
 
             foreach (GameObject obj in enemies)
             {
-                Debug.DrawLine(transform.position, obj.transform.position, Color.black, 10f);
+                //Debug.DrawLine(transform.position, obj.transform.position, Color.black, 10f);
             }
 
-            Debug.Log(transform.position.x);
-
-            Debug.Log(friends[0].transform.position.x);
-            Debug.Log(friends[1].transform.position.x);
-            Debug.Log(friends[2].transform.position.x);
-
             int i = 0;
-            foreach (var enemy in enemy_list)
+            for (int j = 0; j < enemy_list.Count; j++)
             {
-                friends[i].GetComponent<CarAI3>().route.Add(enemy);
+                partitions[i].Add(friend_list.Count + j);
                 i = (i + 1) % 3;
             }
 
-            for (int j = 0; j < 3; j++)
+            for(int j = 0; j < 3; j++)
             {
-                Debug.Log(String.Format("Route for car nr: {0}", j));
-                foreach(Waypoint wp in friends[j].GetComponent<CarAI3>().route)
-                {
-                    Debug.Log(String.Format("{0}, {1}", wp.pos.x, wp.pos.z));
-                }
-            }
 
-            for(int j = 1; j < 2; j++)
-            {
                 Pathgen pg = new Pathgen(terrain_manager, 4f, 5f, "car", enemy_list, friend_list);
-                var good_route = pg.tspSolver(friends[j].GetComponent<CarAI3>().route);
+                var good_route = pg.tspSolver(partitions[j].ToArray());
                 good_routes.Add(good_route);
                 
                 /*var old = good_route[0];

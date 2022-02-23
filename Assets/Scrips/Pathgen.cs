@@ -15,13 +15,16 @@ namespace Assets.Scrips
         List<Vector3> my_path;
         Stack<Waypoint> optimal_path;
         float max_turning_velocity;
-        List<Waypoint> visibility_graph;
-        public List<Waypoint> wps = new List<Waypoint>();
-        List<Waypoint> friend_list = new List<Waypoint>();
-        List<Waypoint> enemy_list = new List<Waypoint>();
+        public Vector3[] wps;
+        List<Vector3> friend_list = new List<Vector3>();
+        List<Vector3> enemy_list = new List<Vector3>();
+        bool[,] neighbors;
+        int nr_wps;
+        int nr_friends;
+        int nr_enemies;
 
 
-        public Pathgen(TerrainManager t, float tp, float mtv, string vehicle, List<Waypoint> enemies, List<Waypoint> friends)
+        public Pathgen(TerrainManager t, float tp, float mtv, string vehicle, List<Vector3> enemies, List<Vector3> friends)
         {
             terrain_manager = t;
             terrain_padding = tp;
@@ -103,87 +106,56 @@ namespace Assets.Scrips
                     }
                 }
             }
+            nr_wps = friend_list.Count + enemy_list.Count + my_path.Count;
+            wps = new Vector3[nr_wps];
+            nr_friends = friend_list.Count;
+            nr_enemies = enemy_list.Count;
 
-            visibility_graph = my_path.ConvertAll(x => new Waypoint(x));
-
-
-            /* Plot your path to see if it makes sense
-            Vector3 old_wp = start_pos;
-            foreach (var wp in my_path)
+            // Add all friends to wps
+            for (int i = 0; i < friend_list.Count; i++)
             {
-                //Debug.DrawLine(old_wp, wp, Color.red, 100f);
-                old_wp = wp;
+                wps[i] = friend_list[i];
             }
-            */
-
-            
-            foreach (var vec in my_path)
+            // Add all enemies to wps
+            for (int i = 0; i < enemy_list.Count; i++)
             {
-                Waypoint w = new Waypoint(vec);
-                wps.Add(w);
+                wps[friend_list.Count + i] = enemy_list[i];
+            }
+            // Add my_path (visibility graph) to wps
+            for (int i = 0; i < my_path.Count; i++)
+            {
+                wps[friend_list.Count + enemy_list.Count + i] = my_path[i];
             }
 
-            wps.AddRange(friend_list);
-            wps.AddRange(enemy_list);
-
+            // neighbors[x, y] == true means x, y are neighbors and also neighbors[y, x] == true
+            neighbors = new bool[nr_wps, nr_wps];
             
-            foreach (var w in wps)
+            for (int i = 0; i < nr_wps; i++)
             {
-                foreach (var otherw in wps)
+                for (int j = 0; j < nr_wps; j++)
                 {
-                    if (!w.pos.Equals(otherw.pos) && !Physics.Linecast(w.pos, otherw.pos, LayerMask.GetMask("TransparentFX")))
+                    if (i != j && !Physics.Linecast(wps[i], wps[j], LayerMask.GetMask("TransparentFX")))
                     {
-                        w.neighbors.Add(otherw);
+                        neighbors[i, j] = true;
+                        neighbors[j, i] = true;
                         //Debug.DrawLine(w.pos, otherw.pos, Color.red, 100f);
 
                
                     }
-                    else
+                    // i is an enemy
+                    else if (i != j && (i < nr_friends + nr_enemies && i >= nr_friends))
                     {
-                        foreach(var enemy in enemy_list)
-                        {
-                            bool enemy_within_padding = Physics.OverlapSphere(enemy.pos, 0, LayerMask.GetMask("TransparentFX")).Length > 0;
+                        bool enemy_within_padding = Physics.OverlapSphere(wps[i], 0, LayerMask.GetMask("TransparentFX")).Length > 0;
 
-                            if(enemy_within_padding && ((w.Equals(enemy) || otherw.Equals(enemy)) && !Physics.Linecast(w.pos, otherw.pos, LayerMask.GetMask("CubeWalls")))){
-                                w.neighbors.Add(otherw);
-                                //Debug.DrawLine(w.pos, otherw.pos, Color.red, 100f
+                        if(enemy_within_padding && !Physics.Linecast(wps[i], wps[j], LayerMask.GetMask("CubeWalls"))){
+                            neighbors[i, j] = true;
+                            neighbors[j, i] = true;
+                            //Debug.DrawLine(w.pos, otherw.pos, Color.red, 100f
                                 
-                            }
                         }
                     }
                 }
             }
-            //Debug.Log(String.Format("{0} points in the graph", wps.Count));
-
-            foreach(var point in wps)
-            {
-                foreach(var neighbour in point.neighbors)
-                {
-                    //Debug.DrawLine(point.pos, neighbour.pos, Color.cyan, 100f);
-                }
-            }
-
-            // Find optimal path and draw it
-            /*if (vehicle == "car")
-            {
-                optimal_path = A_star(start, goal, wps, car_g, car_h);
-            }
-            else
-            {
-                optimal_path = A_star(start, goal, wps, drone_g, drone_h);
-            }*/
-
-            /*Stack<Waypoint> path = new Stack<Waypoint>(new Stack<Waypoint>(optimal_path));
-
-            Debug.Log(path.Count);
-            Waypoint current = path.Pop();
-            while (path.Count > 0)
-            {
-                Waypoint next = path.Pop();
-                Debug.Log(current.drone_goal_vel);
-                //Debug.DrawLine(current.pos, next.pos, Color.yellow, 1000f);
-                current = next;
-            }*/
 
             // Delete padded cubes
             foreach (var cube in padded_cubes)
@@ -202,44 +174,41 @@ namespace Assets.Scrips
             return new List<Waypoint>(optimal_path).ConvertAll(x => x.pos);
         }
 
-        public List<Vector3> tspSolver(List<Waypoint> targets)
+        public List<Vector3> tspSolver(int[] targets)
         {
-            List<Vector3> path = new List<Vector3>();
+            List<int> path = new List<int>();
             var start = targets[0];
-            bool[] marked = new bool[targets.Count];
-            path.Add(start.pos);
-            marked[0] = true;
+            Dictionary<int, bool> marked = new Dictionary<int, bool>();
+            for (int i = 0; i < targets.Length; i++)
+            {
+                marked.Add(targets[i], false);
+            }
+            path.Add(start);
+            marked[start] = true;
 
             while (true)
             {
-                Waypoint best_target = start;
+                int best_target = start;
                 float lowest_cost = float.PositiveInfinity;
 
                 foreach (var target in targets)
                 {
-                    if (!marked[targets.IndexOf(target)])
+                    if (!marked[target])
                     {
                         float cost = pathCost(start, target);
                         if (cost < lowest_cost)
                         {
                             lowest_cost = cost;
                             best_target = target;
-                            marked[targets.IndexOf(target)] = true;
                             start = target;
                         }
                     }
                 }
-                path.Add(best_target.pos);
+                marked[best_target] = true;
+                path.Add(best_target);
 
-                bool allMarked = true;
-                foreach(bool mark in marked)
-                {
-                    if (!mark)
-                    {
-                        allMarked = false;
-                    }
-                }
-                if (allMarked)
+                // All targets have been marked
+                if (!marked.ContainsValue(false))
                 {
                     break;
                 }
@@ -254,51 +223,53 @@ namespace Assets.Scrips
             return smooth_path;
         }
 
-        public float pathCost(Waypoint start, Waypoint goal)
+        public float pathCost(int start, int goal)
         {
-            var path = A_star(start, goal, wps, car_g, car_h);
+            var path = A_star(start, goal, car_g, car_h);
             float sum_g = 0;
-            Waypoint old_wp = path[0];
+            Vector3 old_wp = path[0];
             foreach(var wp in path)
             {
-                sum_g += Vector3.Distance(old_wp.pos, wp.pos);
+                sum_g += Vector3.Distance(old_wp, wp);
                 old_wp = wp;
             }
             return sum_g;
         }
 
         // https://en.wikipedia.org/wiki/A*_search_algorithm 
-        public List<Waypoint> A_star(Waypoint start, Waypoint goal, List<Waypoint> waypoints, Func<Waypoint, Waypoint, Waypoint, Waypoint, List<Waypoint>, double> g, Func<Waypoint, Waypoint, double> h)
+        public List<Vector3> A_star(int start, int goal, Func<int, int, float> g, Func<int, int, float> h)
         {
+            SimplePriorityQueue<int, double> openSet = new SimplePriorityQueue<int, double>();
+            openSet.Enqueue(start, h(start, goal));
 
-            SimplePriorityQueue<Waypoint, double> openSet = new SimplePriorityQueue<Waypoint, double>();
-            openSet.Enqueue(start, double.PositiveInfinity);
+            int[] cameFrom = new int[nr_wps];
 
-            foreach(var point in waypoints)
+            // g score map
+            float[] g_scores = new float[nr_wps];
+            for (int i = 0; i < g_scores.Length; i++)
             {
-                point.gScore = double.PositiveInfinity;
-                point.cameFrom = null;
+                g_scores[i] = float.PositiveInfinity;
             }
-            start.gScore = 0;
+            g_scores[start] = 0;
 
             while (openSet.Count > 0)
             {
-                Waypoint current = openSet.Dequeue();
-                if (current.Equals(goal))
+                int current = openSet.Dequeue();
+                if (current == goal)
                 {
-                    return reconstruct_path(start, goal);
+                    return reconstruct_path(cameFrom, start, goal);
                 }
 
-                foreach (var neighbor in current.neighbors)
+                foreach (int neighbor in getNeighborsList(current))
                 {
-                    Debug.DrawLine(current.pos, neighbor.pos, Color.green, 100f);
-                    double tentative_gScore = current.gScore + g(start, goal, current, neighbor, waypoints);
+                    //Debug.DrawLine(current.pos, neighbor.pos, Color.green, 100f);
+                    float tentative_gScore = g_scores[current] + g(current, neighbor);
 
-                    if (tentative_gScore < neighbor.gScore)
+                    if (tentative_gScore < g_scores[neighbor])
                     {
                         // This path to neighbor is better than any other recorded one.
-                        neighbor.cameFrom = current;
-                        neighbor.gScore = tentative_gScore;
+                        cameFrom[neighbor] = current;
+                        g_scores[neighbor] = tentative_gScore;
                         openSet.EnqueueWithoutDuplicates(neighbor, tentative_gScore + h(neighbor, goal));
                     }
                 }
@@ -309,9 +280,22 @@ namespace Assets.Scrips
             return null;
         }
 
-        private double car_g(Waypoint start, Waypoint goal, Waypoint current, Waypoint neighbor, List<Waypoint> wps)
+        private List<int> getNeighborsList(int wp)
         {
-            double g = Vector3.Distance(current.pos, neighbor.pos);
+            var neighbors_list = new List<int>();
+            for (int i = 0; i < nr_wps; i++)
+            {
+                if (neighbors[i, wp])
+                {
+                    neighbors_list.Add(i);
+                }
+            }
+            return neighbors_list;
+        }
+
+        private float car_g(int current, int neighbor)
+        {
+            float g = Vector3.Distance(wps[current], wps[neighbor]);
             return g;
         }
 
@@ -333,38 +317,25 @@ namespace Assets.Scrips
             return Vector3.Distance(w.pos, goal.pos);
         }
 
-        private double car_h(Waypoint w, Waypoint goal)
+        private float car_h(int w, int goal)
         {
-            return Vector3.Distance(w.pos, goal.pos);
+            return Vector3.Distance(wps[w], wps[goal]);
         }
 
         // Create stack of waypoints and also add drone_goal_vel depending on the angle between the points
-        private List<Waypoint> reconstruct_path(Waypoint start, Waypoint goal)
+        private List<Vector3> reconstruct_path(int[] cameFrom, int start, int goal)
         {
-            List<Waypoint> path = new List<Waypoint>();
-            Waypoint current = goal;
-            goal.drone_goal_vel = Vector3.forward * 15f;
-            start.drone_goal_vel = Vector3.forward * 15f;
-
-            while (current.cameFrom != null && current.cameFrom.cameFrom != null)
+            List<Vector3> path = new List<Vector3>();
+            int current = goal;
+            while (current != start)
             {
-                Waypoint next = current.cameFrom;
-                Waypoint next_next = next.cameFrom;
-
-                float turn_angle_ratio = Mathf.Pow(Vector3.Angle(current.pos - next.pos, next_next.pos - next.pos) / 180f, 4);
-                next.drone_goal_vel = (next_next.pos - next.pos).normalized * max_turning_velocity * turn_angle_ratio;
-
-                path.Add(current);
-                current = next;
+                path.Add(wps[current]);
+                current = cameFrom[current];
             }
-            path.Add(current);
-            if (current.cameFrom != null)
-            {
-                path.Add(current.cameFrom);
-            }
+            path.Add(wps[start]);
             path.Reverse();
-
             return path;
+
         }
 
         private float squared(float x)
@@ -428,50 +399,30 @@ namespace Assets.Scrips
             return new Stack<Waypoint>(new Stack<Waypoint>(bezier_path));
         }
 
-        public List<Vector3> getBezierPathList(Vector3 start, Vector3 goal)
+        public List<Vector3> getBezierPathList(int start, int goal)
         {
-            // get coarse path
-            Waypoint start_wp = new Waypoint(start);
-            Waypoint goal_wp = new Waypoint(goal);
-            foreach(var wp in wps)
-            {
-                if (wp.pos.Equals(start))
-                {
-                    start_wp = wp;
-                    //Debug.Log("Start found");
-                }
-
-                if (wp.pos.Equals(goal))
-                {
-                    goal_wp = wp;
-                    //Debug.Log("GOal found");
-                }
-            }
-            
-
-
-            var coarse_path = A_star(start_wp, goal_wp, wps, car_g, car_h);
+            var coarse_path = A_star(start, goal, car_g, car_h);
             var bezier_path = new List<Vector3>();
 
             float slide = 6f;
 
-            bezier_path.Add(coarse_path[0].pos);
+            bezier_path.Add(coarse_path[0]);
             for (int i = 1; i < coarse_path.Count - 1; i++)
             {
-                Vector3 backwards_direction = (coarse_path[i - 1].pos - coarse_path[i].pos).normalized;
-                Vector3 forwards_direction = (coarse_path[i + 1].pos - coarse_path[i].pos).normalized;
+                Vector3 backwards_direction = (coarse_path[i - 1] - coarse_path[i]).normalized;
+                Vector3 forwards_direction = (coarse_path[i + 1] - coarse_path[i]).normalized;
 
-                Vector3 control_point_1 = coarse_path[i].pos + backwards_direction * Mathf.Min(slide, (coarse_path[i - 1].pos - coarse_path[i].pos).magnitude / 2);
-                Vector3 control_point_3 = coarse_path[i].pos + forwards_direction * Mathf.Min(slide, (coarse_path[i + 1].pos - coarse_path[i].pos).magnitude / 2);
+                Vector3 control_point_1 = coarse_path[i] + backwards_direction * Mathf.Min(slide, (coarse_path[i - 1] - coarse_path[i]).magnitude / 2);
+                Vector3 control_point_3 = coarse_path[i] + forwards_direction * Mathf.Min(slide, (coarse_path[i + 1] - coarse_path[i]).magnitude / 2);
 
                 for (float t = 0; t <= 1; t += 0.02f)
                 {
-                    Vector3 sp = BezierCurve.Quadratic(new Vector2(control_point_1.x, control_point_1.z), new Vector2(coarse_path[i].pos.x, coarse_path[i].pos.z), new Vector2(control_point_3.x, control_point_3.z), t);
+                    Vector3 sp = BezierCurve.Quadratic(new Vector2(control_point_1.x, control_point_1.z), new Vector2(coarse_path[i].x, coarse_path[i].z), new Vector2(control_point_3.x, control_point_3.z), t);
                     Vector3 sample_point = new Vector3(sp.x, 0, sp.y);
                     bezier_path.Add(sample_point);
                 }
             }
-            bezier_path.Add(coarse_path[coarse_path.Count - 1].pos);
+            bezier_path.Add(coarse_path[coarse_path.Count - 1]);
             return bezier_path;
         }
 
