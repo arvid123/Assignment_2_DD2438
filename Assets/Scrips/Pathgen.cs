@@ -5,6 +5,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
+using System.Diagnostics;
+using System.IO;
 
 namespace Assets.Scrips
 {
@@ -34,7 +36,7 @@ namespace Assets.Scrips
             Vector3 goal_pos = terrain_manager.myInfo.goal_pos;
 
             my_path = new List<Vector3>();
-            Debug.DrawRay(start_pos, Vector3.forward, Color.magenta, 1000f);
+            UnityEngine.Debug.DrawRay(start_pos, Vector3.forward, Color.magenta, 1000f);
 
             friend_list = friends;
             enemy_list = enemies;
@@ -138,7 +140,7 @@ namespace Assets.Scrips
                     {
                         neighbors[i, j] = true;
                         neighbors[j, i] = true;
-                        //Debug.DrawLine(w.pos, otherw.pos, Color.red, 100f);
+                        //UnityEngine.Debug.DrawLine(w.pos, otherw.pos, Color.red, 100f);
 
                
                     }
@@ -150,7 +152,7 @@ namespace Assets.Scrips
                         if(enemy_within_padding && !Physics.Linecast(wps[i], wps[j], LayerMask.GetMask("CubeWalls"))){
                             neighbors[i, j] = true;
                             neighbors[j, i] = true;
-                            //Debug.DrawLine(w.pos, otherw.pos, Color.red, 100f
+                            //UnityEngine.Debug.DrawLine(w.pos, otherw.pos, Color.red, 100f
                                 
                         }
                     }
@@ -172,6 +174,71 @@ namespace Assets.Scrips
         public List<Vector3> getOptimalPathList()
         {
             return new List<Waypoint>(optimal_path).ConvertAll(x => x.pos);
+        }
+
+        public List<List<Vector3>> vrpSolver()
+        {
+
+            // Run vrp solver
+            // Use ProcessStartInfo class
+            ProcessStartInfo startInfo = new ProcessStartInfo();
+            startInfo.WorkingDirectory = Directory.GetCurrentDirectory() + "\\Assets\\Resources\\or-tools\\bin";
+            startInfo.CreateNoWindow = false;
+            startInfo.UseShellExecute = true;
+            startInfo.FileName = "vrp_new.exe";
+            startInfo.WindowStyle = ProcessWindowStyle.Hidden;
+            UnityEngine.Debug.Log(Directory.GetCurrentDirectory());
+
+            startInfo.Arguments += String.Format("{0}", nr_enemies + 1);
+            // Create distance matrix
+            for (int i = nr_friends - 1; i < nr_friends + nr_enemies; i++)
+            {
+                for (int j = nr_friends - 1; j < nr_friends + nr_enemies; j++)
+                {
+                    startInfo.Arguments += " ";
+                    startInfo.Arguments += pathCost(i, j);
+                    
+                }
+            }
+
+            try
+            {
+                // Start the process with the info we specified.
+                // Call WaitForExit and then the using statement will close.
+                using (Process exeProcess = Process.Start(startInfo))
+                {
+                    exeProcess.WaitForExit();
+                }
+            }
+            catch
+            {
+                // Log error.
+            }
+
+            List<int>[] vrp_routes = new List<int>[nr_friends];
+
+            string[] vrp_solutions = System.IO.File.ReadAllLines(Directory.GetCurrentDirectory() + "\\Assets\\Resources\\or-tools\\bin\\solution.txt");
+            for (int i = 0; i < nr_friends; i++)
+            {
+                List<int> route = vrp_solutions[i].Split(' ').Select(Int32.Parse).ToList();
+                route.RemoveAt(route.Count - 1);
+                route[0] = -i;
+                UnityEngine.Debug.Log(string.Join(" ", route.ToArray()));
+                vrp_routes[i] = route;
+            }
+
+            List<List<Vector3>> smooth_paths = new List<List<Vector3>>();
+            for (int i = 0; i < nr_friends; i++)
+            {
+                List<Vector3> smooth_path = new List<Vector3>();
+                for (int j = 1; j < vrp_routes[i].Count; j++)
+                {
+                    smooth_path.AddRange(getBezierPathList(vrp_routes[i][j - 1] + nr_friends-1, vrp_routes[i][j] + nr_friends-1));
+                }
+                smooth_paths.Add(smooth_path);
+            }
+
+            return smooth_paths;
         }
 
         public List<Vector3> tspSolver(int[] targets)
@@ -262,7 +329,7 @@ namespace Assets.Scrips
 
                 foreach (int neighbor in getNeighborsList(current))
                 {
-                    //Debug.DrawLine(current.pos, neighbor.pos, Color.green, 100f);
+                    //UnityEngine.Debug.DrawLine(current.pos, neighbor.pos, Color.green, 100f);
                     float tentative_gScore = g_scores[current] + g(current, neighbor);
 
                     if (tentative_gScore < g_scores[neighbor])
@@ -276,7 +343,7 @@ namespace Assets.Scrips
             }
 
             // Should be unreachable
-            Debug.Log("A* failed");
+            UnityEngine.Debug.Log("A* failed");
             return null;
         }
 
@@ -393,7 +460,7 @@ namespace Assets.Scrips
             // draw goal_vels
             foreach (Waypoint w in bezier_path)
             {
-                ////Debug.DrawLine(w.pos, w.pos + w.drone_goal_vel, Color.yellow, 1000f);
+                ////UnityEngine.Debug.DrawLine(w.pos, w.pos + w.drone_goal_vel, Color.yellow, 1000f);
             }
 
             return new Stack<Waypoint>(new Stack<Waypoint>(bezier_path));
@@ -443,22 +510,22 @@ namespace Assets.Scrips
             List<Vector3> cps_new = new List<Vector3>();
             int cps_new_len = 1;
             cps_new.Add(current.pos);
-            // UnityEngine.Debug.Log("cps" + current.pos);
+            // UnityEngine.UnityEngine.Debug.Log("cps" + current.pos);
 
             while (chosen_path.Count > 1)
             {
                 Waypoint next = chosen_path.Pop();
                 float linear_dis = Vector3.Distance(current.pos, next.pos);
-                //UnityEngine.Debug.Log("Linear distance" + linear_dis);
+                //UnityEngine.UnityEngine.Debug.Log("Linear distance" + linear_dis);
                 //num_interpolation = (int)Math.Ceiling(linear_dis / 2);
                 num_interpolation = 11; // 
-                //UnityEngine.Debug.Log("num_interpolation" + num_interpolation);
+                //UnityEngine.UnityEngine.Debug.Log("num_interpolation" + num_interpolation);
                 for (int i = 1; i <= num_interpolation; i++)
                 {
                     float rate = (float)i / num_interpolation;
                     Vector3 add_point = Vector3.Lerp(current.pos, next.pos, rate);
                     cps.Add(add_point);
-                    //UnityEngine.Debug.Log("cps"+ add_point);
+                    //UnityEngine.UnityEngine.Debug.Log("cps"+ add_point);
                     if (i == 2) // //
                         cps_new.Add(add_point); // //
                     if (i == 9) // //
@@ -473,8 +540,8 @@ namespace Assets.Scrips
             }
             cps_new.Add(current.pos);
             cps_new_len += 1;
-            //UnityEngine.Debug.Log("Linear Path Length " + chosen_path_len);
-            //UnityEngine.Debug.Log("Possible Control points Length " + cps_len);
+            //UnityEngine.UnityEngine.Debug.Log("Linear Path Length " + chosen_path_len);
+            //UnityEngine.UnityEngine.Debug.Log("Possible Control points Length " + cps_len);
 
             /*
             List<Vector3> cps_new = new List<Vector3>(); // create contol points
@@ -485,20 +552,20 @@ namespace Assets.Scrips
                 if ((i % interval) == 0)
                 {
                     cps_new.Add(cps[i]);
-                    //UnityEngine.Debug.Log("cps_new" + cps[i]);
+                    //UnityEngine.UnityEngine.Debug.Log("cps_new" + cps[i]);
                     cps_new_len++;
                 }
             }
             cps_new.Add(cps[cps_len - 1]);
-            //UnityEngine.Debug.Log("cps_new" + cps[cps_len - 1]);
+            //UnityEngine.UnityEngine.Debug.Log("cps_new" + cps[cps_len - 1]);
             cps_new_len++;
-            //UnityEngine.Debug.Log("Control points Length" + cps_new_len);
+            //UnityEngine.UnityEngine.Debug.Log("Control points Length" + cps_new_len);
             
             */
             Vector3 old_cp = cps_new[0];
             foreach (var cp in cps_new)
             {
-                ////Debug.DrawLine(old_cp, cp, Color.red, 100f);
+                ////UnityEngine.Debug.DrawLine(old_cp, cp, Color.red, 100f);
                 old_cp = cp;
             }
 
@@ -524,10 +591,10 @@ namespace Assets.Scrips
             Vector3 old_sp = smooth_path[0];
             foreach (var sp in smooth_path)
             {
-                Debug.DrawLine(old_sp, sp, Color.blue, 100f);
+                UnityEngine.Debug.DrawLine(old_sp, sp, Color.blue, 100f);
                 old_sp = sp;
             }
-            //UnityEngine.Debug.Log("Smooth Path Length " + smooth_path_len);
+            //UnityEngine.UnityEngine.Debug.Log("Smooth Path Length " + smooth_path_len);
 
             Stack<Waypoint> path = new Stack<Waypoint>(smooth_path.ConvertAll<Waypoint>(x => new Waypoint(x)));
             Waypoint current_point = path.Pop();
