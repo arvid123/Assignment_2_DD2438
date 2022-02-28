@@ -99,7 +99,7 @@ namespace UnityStandardAssets.Vehicles.Car
             leader_back = leader.transform.TransformDirection(Vector3.back);
             leader_left = leader.transform.TransformDirection(Vector3.left);
             for (int i = 0; i < num_followers; i++) {
-                Vector3 new_pos = leader_pos /*+ leader_back * 10f * (i + 1) + leader_left * offsets[i] * 20f*/;
+                Vector3 new_pos = leader_pos + leader_back * 10f * (i + 1) + leader_left * offsets[i] * 20f;
                 Vector3 diff = (new_pos - targets[i]);
                 target_vels[i] = (new_pos - targets[i]) / Time.fixedDeltaTime;
                 targets[i] = new_pos;
@@ -110,7 +110,8 @@ namespace UnityStandardAssets.Vehicles.Car
 
             Vector3 q_tar = targets[my_target];
             Vector3 v_tar = target_vels[my_target];
-            float theta_tar = Mathf.Deg2Rad * Vector3.SignedAngle(Vector3.right, v_tar, Vector3.down);
+            float theta_tar_signed = Mathf.Deg2Rad * Vector3.SignedAngle(Vector3.right, v_tar, Vector3.down);
+            float theta_tar = theta_tar_signed;
             Vector3 q_obs = Vector3.positiveInfinity;
 
            //foreach (GameObject obstacle in GameObject.FindGameObjectsWithTag("cube"))
@@ -134,15 +135,26 @@ namespace UnityStandardAssets.Vehicles.Car
             }*/
 
             Vector3 q_at = q_tar - transform.position;
-            float psi = Mathf.Deg2Rad * Vector3.SignedAngle(Vector3.right, q_at, Vector3.down);
-            float xi_1 = 2f;
-            float xi_2 = 1f;
+            float psi_signed = Mathf.Deg2Rad * Vector3.SignedAngle(Vector3.right, q_at, Vector3.down);
+            float psi = psi_signed;
+            float xi_1 = 0.01f;
+            float xi_2 = 2f;
             float rho_inv = 1f / (q_obs - transform.position).magnitude;
-            float rho_zero_inv = 1f / 20f;
-            float mu = (xi_2 * rho_inv * (rho_inv - rho_zero_inv)) / q_ao.magnitude;
+            float rho_zero_inv = 1f / 50f;
+            float rho_diff = (rho_inv - rho_zero_inv) > 0 ? (rho_inv - rho_zero_inv) : 0;
+            float mu = (xi_2 * rho_inv * rho_diff) / q_ao.magnitude;
             float lambda = (mu * q_ao.magnitude) / (xi_1 * q_at.magnitude);
-            float theta_ao = Mathf.Deg2Rad * Vector3.SignedAngle(Vector3.right, q_ao, Vector3.down);
+            float theta_ao_signed = Mathf.Deg2Rad * Vector3.SignedAngle(Vector3.right, q_ao, Vector3.down);
+            float theta_ao = theta_ao_signed;
             float psi_bar = Mathf.Atan((Mathf.Sin(psi) - lambda * Mathf.Sin(theta_ao)) / (Mathf.Cos(psi) - lambda * Mathf.Cos(theta_ao)));
+            if (Mathf.Abs(Mathf.Cos(psi)) < 0.01f)
+            {
+                //psi_bar = -(Mathf.PI / 2) * Mathf.Sin(psi);
+            }
+            if (Mathf.Cos(psi) > 0f)
+            {
+                psi_bar = Mathf.PI + psi_bar;
+            }
             float term_1 = v_tar.magnitude * Mathf.Cos(theta_tar - psi);
             //Debug.Log("Term 1: " + term_1);
             float term_2 = xi_1 * q_at.magnitude;
@@ -155,9 +167,11 @@ namespace UnityStandardAssets.Vehicles.Car
             {
                 theta_i = psi_bar + Mathf.Asin(Mathf.Clamp((v_tar.magnitude * Mathf.Sin(theta_tar - psi_bar) / norm_v_i), -1, 1));
             }
-            Debug.Log("psi_bar " + psi_bar * Mathf.Rad2Deg);
-            Debug.Log("theta_ao " + theta_ao);
             Debug.Log("psi " + psi);
+            Debug.Log("psi_bar " + psi_bar * Mathf.Rad2Deg);
+            Debug.Log("cos psi " + Mathf.Cos(psi));
+            Debug.Log("sin psi " + Mathf.Sin(psi));
+            Debug.Log("lambda " + lambda);
 
             Vector3 u_i = new Vector3(norm_v_i * -Mathf.Cos(theta_i), 0f, norm_v_i * -Mathf.Sin(theta_i));
 

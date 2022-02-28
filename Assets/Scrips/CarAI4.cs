@@ -96,7 +96,8 @@ namespace UnityStandardAssets.Vehicles.Car
 
             Vector3 q_tar = targets[my_target];
             Vector3 v_tar = target_vels[my_target];
-            float theta_tar = Mathf.Deg2Rad * Vector3.Angle(Vector3.right, v_tar);
+            float theta_tar_rad_signed = Vector3.SignedAngle(Vector3.right, v_tar, Vector3.up);
+            float theta_tar = Mathf.Deg2Rad * theta_tar_rad_signed < 0 ? Mathf.PI + -theta_tar_rad_signed : theta_tar_rad_signed;
             Vector3 q_obs = Vector3.positiveInfinity;
 
            //foreach (GameObject obstacle in GameObject.FindGameObjectsWithTag("cube"))
@@ -120,15 +121,17 @@ namespace UnityStandardAssets.Vehicles.Car
             }
 
             Vector3 q_at = q_tar - transform.position;
-            float psi = Mathf.Deg2Rad * Vector3.Angle(Vector3.right, q_at);
+            float psi_rad_signed = Vector3.SignedAngle(Vector3.right, q_at, Vector3.up);
+            float psi = Mathf.Deg2Rad * psi_rad_signed < 0 ? Mathf.PI + -psi_rad_signed : psi_rad_signed;
             float xi_1 = 2f;
             float xi_2 = 1f;
             float rho_inv = 1f / (q_obs - transform.position).magnitude;
             float rho_zero_inv = 1f / 20f;
             float mu = xi_2 * rho_inv * (rho_inv - rho_zero_inv) / q_ao.magnitude;
             float lambda = (mu * q_ao.magnitude) / (xi_1 * q_at.magnitude);
-            float theta_ao = Mathf.Deg2Rad * Vector3.Angle(Vector3.right, friend_vels[my_target]);
-            float psi_bar = Mathf.Atan((Mathf.Sin(psi) - lambda * Mathf.Sin(theta_ao)) / (Mathf.Cos(psi) - lambda * Mathf.Cos(theta_ao)));
+            float theta_ao_rad_signed = Vector3.SignedAngle(Vector3.right, friend_vels[my_target], Vector3.up);
+            float theta_ao = Mathf.Deg2Rad * theta_ao_rad_signed < 0 ? Mathf.PI + theta_ao_rad_signed : theta_ao_rad_signed;
+            float psi_bar = Mathf.Atan(Mathf.Abs((Mathf.Sin(psi) - lambda * Mathf.Sin(theta_ao))) / Mathf.Abs((Mathf.Cos(psi) - lambda * Mathf.Cos(theta_ao))));
             float norm_v_i = Mathf.Sqrt(Mathf.Pow(v_tar.magnitude * Mathf.Cos(theta_tar - psi) + xi_1 * q_at.magnitude, 2) + v_tar.sqrMagnitude * Mathf.Sin(theta_tar - psi_bar));
             float theta_i = theta_tar;
             if (norm_v_i != 0)
@@ -137,7 +140,6 @@ namespace UnityStandardAssets.Vehicles.Car
             }
 
             Vector3 u_i = new Vector3(norm_v_i * Mathf.Cos(theta_i), 0f, norm_v_i * Mathf.Sin(theta_i));
-
 
             // PD controller goes here
 
@@ -153,7 +155,7 @@ namespace UnityStandardAssets.Vehicles.Car
             if (Physics.Raycast(transform.position + transform.up, transform.TransformDirection(Vector3.forward), out hit, maxRange))
             {
                 Vector3 closestObstacleInFront = transform.TransformDirection(Vector3.forward) * hit.distance;
-                //Debug.DrawRay(transform.position, closestObstacleInFront, Color.yellow);
+                Debug.DrawRay(transform.position, closestObstacleInFront, Color.yellow);
                 //Debug.Log("Did Hit at distance " + hit.distance);
             }
             else
@@ -168,7 +170,7 @@ namespace UnityStandardAssets.Vehicles.Car
             if (Physics.Raycast(transform.position + transform.up, transform.TransformDirection(Vector3.left), out leftHit, maxRange))
             {
                 Vector3 closestObstacleOnLeft = transform.TransformDirection(Vector3.left) * leftHit.distance;
-                //Debug.DrawRay(transform.position, closestObstacleOnLeft, Color.red);
+                Debug.DrawRay(transform.position, closestObstacleOnLeft, Color.red);
                 //Debug.Log("Left Hit at distance " + leftHit.distance);
             }
             else
@@ -182,7 +184,7 @@ namespace UnityStandardAssets.Vehicles.Car
             if (Physics.Raycast(transform.position + transform.up, transform.TransformDirection(Vector3.right), out rightHit, maxRange))
             {
                 Vector3 closestObstacleOnRight = transform.TransformDirection(Vector3.right) * rightHit.distance;
-                //Debug.DrawRay(transform.position, closestObstacleOnRight, Color.red);
+                Debug.DrawRay(transform.position, closestObstacleOnRight, Color.red);
                 //Debug.Log("Right Hit at distance " + rightHit.distance);
             }
             else
@@ -210,7 +212,7 @@ namespace UnityStandardAssets.Vehicles.Car
             if (Physics.Raycast(right_diag_ray, out hitData_right_diag))
             {
                 Vector3 closestObstacleOnRightDiag = right_diag * hitData_right_diag.distance;
-                //Debug.DrawRay(transform.position, closestObstacleOnRightDiag, Color.red);
+                Debug.DrawRay(transform.position, closestObstacleOnRightDiag, Color.red);
             }
             else
             {
@@ -221,7 +223,7 @@ namespace UnityStandardAssets.Vehicles.Car
             if (Physics.Raycast(left_diag_ray, out hitData_left_diag))
             {
                 Vector3 closestObstacleOnLeftDiag = left_diag * hitData_left_diag.distance;
-                //Debug.DrawRay(transform.position, closestObstacleOnLeftDiag, Color.red);
+                Debug.DrawRay(transform.position, closestObstacleOnLeftDiag, Color.red);
             }
             else
             {
