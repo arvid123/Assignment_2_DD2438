@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 
-/*
+
 namespace UnityStandardAssets.Vehicles.Car
 {
     [RequireComponent(typeof(CarController))]
@@ -116,7 +116,7 @@ namespace UnityStandardAssets.Vehicles.Car
             float obstacle_radius = 15f;
             Vector3 q_ao = q_obs - transform.position;
 
-            /*for(int i = 0; i < num_followers; i++)
+            for(int i = 0; i < num_followers; i++)
             {
                 Vector3 new_friend_pos = friends[i].transform.position;
                 friend_vels[i] = (new_friend_pos - friends_pos[i]) * Time.fixedDeltaTime;
@@ -200,7 +200,7 @@ namespace UnityStandardAssets.Vehicles.Car
             }
 
 
-            ///*
+            
             //Raycast left
             RaycastHit leftHit;
             if (Physics.Raycast(transform.position + transform.up, transform.TransformDirection(Vector3.left), out leftHit, maxRange))
@@ -283,17 +283,6 @@ namespace UnityStandardAssets.Vehicles.Car
             //Debug.Log("Distance to goal: " + position_error.magnitude);
             //Debug.DrawLine(transform.position, target_position);
 
-            Vector3 target_velocity = u_i;
-            float k_p = 0f;
-            float k_d = 1f;
-            Vector3 velocity_error = target_velocity - my_velocity;
-            Vector3 desired_acceleration = /*k_p * position_error + k_d * velocity_error;
-            desired_acceleration = target_velocity;
-            
-
-            steerAngle = Vector3.Dot(desired_acceleration, transform.right);
-            acceleration = Vector3.Dot(desired_acceleration, transform.forward);
-
             /*if (my_velocity.magnitude > 1.5 * hit.distance)
             {
                 Debug.Log(my_velocity.magnitude + " speed is bigger than distance " + hit.distance);
@@ -361,7 +350,7 @@ namespace UnityStandardAssets.Vehicles.Car
                 acceleration = 0.05f * hit.distance;
                 //steerAngle = rightHit.distance < leftHit.distance ? -1f : 1f;
                 Debug.Log("Getting close, acceleration down to " + acceleration);
-            }//
+            }//*/
 
             // m_Car.Move(a, b, c, d) is how you control the car
             // a steering [-1, 1] (-1 left, 1 right))
@@ -375,4 +364,3 @@ namespace UnityStandardAssets.Vehicles.Car
         }
     }
 }
-*/

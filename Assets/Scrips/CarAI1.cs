@@ -20,6 +20,7 @@ namespace UnityStandardAssets.Vehicles.Car
         List<List<Vector3>> paths = new List<List<Vector3>>();
         Vector3 my_old_position;
         bool backup = false;
+        float[,] map;
 
         //Function for
         List<TreeNode> ComputeSingleRootCover(Vector3 root_position, List<Edge> edge_list, List<Vector3> vertices, float B) {
@@ -243,7 +244,7 @@ namespace UnityStandardAssets.Vehicles.Car
             List<Vector3> vertices = new List<Vector3>();
             int x_N = info.x_N;
             int z_N = info.z_N;
-            float[,] map = new float[x_N, z_N];
+            map = new float[x_N, z_N];
             for(int i = 0; i < x_N; i++) {
                 for(int j = 0; j < z_N; j++) {
                     map[i, j] = info.traversability[i, j];
@@ -735,18 +736,26 @@ namespace UnityStandardAssets.Vehicles.Car
             //Debug.Log("target" + target_position);
             if (position_error.magnitude < 8) {
                 //if(Math.Abs(position_error.x) < x_size/2 && Math.Abs(position_error.z) < z_size/2 && my_path.Count() > 1){
+                Vector3 previous_point = my_path[0];
                 if(my_path.Count > 1) {
                     my_path.RemoveAt(0);
                 }
                 else {
                     my_path = paths[3];
                 }
-                target_position = my_path[0];
+                if (map[terrain_manager.myInfo.get_i_index(my_path[0].x), terrain_manager.myInfo.get_j_index(my_path[0].z)] == 0) {
+                    target_position = my_path[0];
+                } else {
+                    Vector3 forward_dir = (my_path[0] - previous_point).normalized;
+                    Vector3 normal = Vector3.Cross(forward_dir, Vector3.up);
+                    my_path[0] += normal * 10f;
+                    target_position = my_path[0];
+                }
                 //Debug.Log("Removed a point, there are now " + my_path.Count() + " points left!");
             }
-
+            position_error = target_position - current_position;
             //Debug.Log("Distance to goal: " + position_error.magnitude);
-            Debug.DrawLine(transform.position, new Vector3(my_path[0].x, 0f, my_path[0].z));
+            Debug.DrawLine(transform.position, target_position);
 
 
             Vector3 target_velocity = Vector3.zero;

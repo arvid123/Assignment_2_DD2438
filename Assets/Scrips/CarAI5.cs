@@ -234,7 +234,7 @@ namespace UnityStandardAssets.Vehicles.Car
             my_pos.Add(transform.position);
 
 
-            Time.timeScale = 2f;
+            //Time.timeScale = 2f;
             friends = GameObject.FindGameObjectsWithTag("Player");
             // get the car controller
 

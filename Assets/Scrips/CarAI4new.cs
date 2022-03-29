@@ -366,8 +366,6 @@ namespace UnityStandardAssets.Vehicles.Car
                 hitData_left_diag.distance = 51;
             }
 
-
-
             m_Car.Move(steerAngle, Mathf.Clamp(acceleration, 0, 1f), reversing, braking);
 
             /*Vector3 a = leader_trajectory[leader_trajectory.Count - offset * (my_target + 1) - 10];

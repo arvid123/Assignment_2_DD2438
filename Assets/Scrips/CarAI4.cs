@@ -349,7 +349,7 @@ namespace UnityStandardAssets.Vehicles.Car
             leader_back = leader.transform.TransformDirection(Vector3.back);
             leader_left = leader.transform.TransformDirection(Vector3.left);
             int offset = 29;
-            float formation_width = 10f;
+            float formation_width = 30f;
             for (int i = 0; i < num_followers; i++)
             {
                 Vector3 new_pos = new Vector3();
