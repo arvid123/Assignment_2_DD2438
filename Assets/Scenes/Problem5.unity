@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.44657838, g: 0.49641234, b: 0.57481676, a: 1}
+  m_IndirectSpecularColor: {r: 0.44657898, g: 0.4964133, b: 0.5748178, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -18093,8 +18093,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   terrain_manager_game_object: {fileID: 1677047333}
-  friends: []
-  enemies: []
+  game_manager_game_object: {fileID: 1712461946}
 --- !u!114 &468917176
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -18467,8 +18466,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   terrain_manager_game_object: {fileID: 1677047333}
-  friends: []
-  enemies: []
+  game_manager_game_object: {fileID: 1712461946}
 --- !u!114 &492361547
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -30335,8 +30333,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   terrain_manager_game_object: {fileID: 1677047333}
-  friends: []
-  enemies: []
+  game_manager_game_object: {fileID: 1712461946}
 --- !u!114 &792701571
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -69333,6 +69330,7 @@ MonoBehaviour:
   number_of_turrets: 5
   number_of_extra_cars: 0
   random_seed: 5
+  completion_time: 0
   turret_text: {fileID: 1836896012}
   turret_list: []
   weak_turrets: 0

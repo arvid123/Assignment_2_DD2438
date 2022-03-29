@@ -286,7 +286,7 @@ namespace UnityStandardAssets.Vehicles.Car
                             }
                             c.a = 0.5f;
                             square.GetComponent<Renderer>().material.color = c;
-                            //square.SetActive(false);
+                            square.SetActive(false);
                         }
                     }
                 }
@@ -572,6 +572,10 @@ namespace UnityStandardAssets.Vehicles.Car
                     max_dist = friend_dist > max_dist ? friend_dist : max_dist;
                 }
                 if(max_dist > 25f) {
+                    braking = 1f;
+                    acceleration = 0f;
+                }
+                else if(max_dist > 10f && my_path.Count < 3){
                     braking = 1f;
                     acceleration = 0f;
                 }
