@@ -200,7 +200,7 @@ namespace UnityStandardAssets.Vehicles.Car
 
             float sum = 0f;
             foreach(var child in node.children) {
-                sum += w(child) + 1;
+                sum += w(child) + Vector3.Distance(node.position, child.position);
             }
 
             return sum;
@@ -518,7 +518,7 @@ namespace UnityStandardAssets.Vehicles.Car
 
         private void Start()
         {
-            Time.timeScale = 3f;
+            Time.timeScale = 6f;
             // get the car controller
             m_Car = GetComponent<CarController>();
             terrain_manager = terrain_manager_game_object.GetComponent<TerrainManager>();
@@ -602,11 +602,11 @@ namespace UnityStandardAssets.Vehicles.Car
 
 
             // TODO: Make car move beside the graph, fix the binary search, and adjust weights to euclidean
-            List<TreeNode> best_candidate = KTreeCover_new(terrain_manager.myInfo, 30f);
+            List<TreeNode> best_candidate = KTreeCover_new(terrain_manager.myInfo, 750f);
 
             Color[] colors = new Color[] { Color.blue, Color.red, Color.green, Color.yellow, Color.cyan, Color.magenta };
             for (int i = 0; i < best_candidate.Count; i++) {
-                DrawTree(best_candidate[i], colors[i % colors.Length]);
+                //DrawTree(best_candidate[i], colors[i % colors.Length]);
             }
 
             // Generate path based on each root.
@@ -617,21 +617,44 @@ namespace UnityStandardAssets.Vehicles.Car
             }
 
             my_path = null;
+            Color color = Color.cyan;
 
             switch(name) {
                 case "ArmedCar":
                     my_path = paths[0];
+                    color = Color.red;
                     break;
                 case "ArmedCar (1)":
                     my_path = paths[1];
+                    color = Color.green;
                     break;
                 case "ArmedCar (2)":
                     my_path = paths[2];
+                    color = Color.blue;
                     break;
                 default:
                     break;
             }
+
+            for(int i = 0; i < my_path.Count-2; i++) {
+                if (!my_path[i].Equals(my_path[i + 2])) continue;
+                if (map[terrain_manager.myInfo.get_i_index(my_path[i + 1].x), terrain_manager.myInfo.get_j_index(my_path[i + 1].z)] == 0) continue;
+
+                Vector3 forward = (my_path[i + 1] - my_path[i]).normalized;
+                Vector3 normal = Vector3.Cross(forward, Vector3.up);
+                Vector3 up_left = my_path[i + 1] + forward * 5f + normal * 5f;
+                Vector3 up_right = my_path[i + 1] + forward * 5f - normal * 5f;
+                my_path.Insert(i + 2, up_right);
+                my_path.Insert(i + 2, up_left);
+            }
             Debug.Log(name + " path count " + my_path.Count);
+            Vector3 old_point = my_path[0];
+            foreach(Vector3 point in my_path) {
+                Debug.DrawLine(old_point, point, color, 10000f);
+                old_point = point;
+                Debug.Log("drawing");
+            }
+            
             //*/
         }
 
@@ -690,7 +713,7 @@ namespace UnityStandardAssets.Vehicles.Car
 
             //45 degree steering
 
-            float diag_margin = 8;
+            float diag_margin = 6;
             //Vector3 right_velocity = (my_position - my_old_position) / Time.fixedDeltaTime;
             //Vector3 left_velocity = (my_position - my_old_position) / Time.fixedDeltaTime;
 
@@ -734,7 +757,7 @@ namespace UnityStandardAssets.Vehicles.Car
 
             //Debug.Log("curr" + current_position);
             //Debug.Log("target" + target_position);
-            if (position_error.magnitude < 8) {
+            if (position_error.magnitude < 6) {
                 //if(Math.Abs(position_error.x) < x_size/2 && Math.Abs(position_error.z) < z_size/2 && my_path.Count() > 1){
                 Vector3 previous_point = my_path[0];
                 if(my_path.Count > 1) {
@@ -748,7 +771,7 @@ namespace UnityStandardAssets.Vehicles.Car
                 } else {
                     Vector3 forward_dir = (my_path[0] - previous_point).normalized;
                     Vector3 normal = Vector3.Cross(forward_dir, Vector3.up);
-                    my_path[0] += normal * 10f;
+                    my_path[0] += normal * 12f;
                     target_position = my_path[0];
                 }
                 //Debug.Log("Removed a point, there are now " + my_path.Count() + " points left!");
@@ -798,6 +821,7 @@ namespace UnityStandardAssets.Vehicles.Car
             }
 
             bool is_reversing = Vector3.Angle(transform.forward, my_path[0] - transform.position) > 90;
+            bool is_almost_reversing = Vector3.Angle(transform.forward, my_path[0] - transform.position) < 90 && Vector3.Angle(transform.forward, my_path[0] - transform.position) > 80;
 
             if (is_reversing) {
                 reversing = -1;
@@ -806,6 +830,11 @@ namespace UnityStandardAssets.Vehicles.Car
                     steerAngle = -steerAngle;
                 }
             }
+            if (is_almost_reversing) {
+                acceleration = 1;
+            }
+
+            
 
             if (backup || hit.distance < 5 || hitData_right_diag.distance < 4 || hitData_left_diag.distance < 4) { // Already collided, back up
                 Debug.Log("Backing up");
