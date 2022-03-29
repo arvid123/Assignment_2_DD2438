@@ -132,7 +132,7 @@ namespace UnityStandardAssets.Vehicles.Car
 
         float xi_1 = 3f;
         float xi_2 = 5000f; //10000000f;
-        float obstacle_radius = 10.7f;
+        float obstacle_radius = 0f;
         float rho_zero = 30f;
 
         List<GameObject> sphere_list = new List<GameObject>();
@@ -212,7 +212,7 @@ namespace UnityStandardAssets.Vehicles.Car
             //foreach (GameObject obstacle in GameObject.FindGameObjectsWithTag("cube"))
             foreach (GameObject obstacle in FindGameObjectWithLayer(9))
             {
-                Vector3 closest_point = obstacle.transform.position; // GetComponent<Collider>().ClosestPoint(transform.position);
+                Vector3 closest_point = obstacle.GetComponent<Collider>().ClosestPoint(transform.position);
                 Vector3 min_distance = closest_point - transform.position;
                 if (min_distance.sqrMagnitude < (q_obs - transform.position).sqrMagnitude)
                 {
@@ -409,7 +409,7 @@ namespace UnityStandardAssets.Vehicles.Car
            //foreach (GameObject obstacle in GameObject.FindGameObjectsWithTag("cube"))
            foreach (GameObject obstacle in FindGameObjectWithLayer(9))
            {
-                Vector3 closest_point = obstacle.transform.position; // GetComponent<Collider>().ClosestPoint(my_position);
+                Vector3 closest_point = obstacle.GetComponent<Collider>().ClosestPoint(my_position);
                 Vector3 min_distance = closest_point - my_position;    
                 if (min_distance.sqrMagnitude < (q_obs - my_position).sqrMagnitude)
                 {
@@ -634,12 +634,12 @@ namespace UnityStandardAssets.Vehicles.Car
                 braking = 1f;
             }
 
-            m_Car.Move(steerAngle, Mathf.Clamp(acceleration, 0, 1f), reversing, braking);
+            //m_Car.Move(steerAngle, Mathf.Clamp(acceleration, 0, 1f), reversing, braking);
             //if (u_i.magnitude > 1f/ Time.fixedDeltaTime)
             //{
             //    u_i = u_i.normalized / Time.fixedDeltaTime;
             //}
-            //transform.position += u_i * Time.fixedDeltaTime;//*/
+            transform.position += u_i * Time.fixedDeltaTime;//*/
 
 
             bool fan_in = false;
@@ -721,7 +721,7 @@ namespace UnityStandardAssets.Vehicles.Car
                 {
                     if (fan_scales[my_target] < 2f)
                     {
-                        fan_scales[my_target] += 0.01f;
+                        fan_scales[my_target] += 0.02f;
                     }
                 }
                 else
@@ -746,7 +746,7 @@ namespace UnityStandardAssets.Vehicles.Car
             if (curvature > 0.01f && fan_scales[my_target] > 0.02f)
             {
                 fan_scales[my_target] -= 0.02f;
-            }*/
+            }//*/
 
 
             //Debug.DrawLine(targets[my_target], targets[my_target] + new Vector3(Mathf.Cos(theta_tar), 0, Mathf.Sin(theta_tar)) * 4f);

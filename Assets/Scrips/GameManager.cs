@@ -17,7 +17,7 @@ public class GameManager : MonoBehaviour {
 
 
     private float start_time;
-    private float completion_time;
+    public float completion_time;
 
     public Text turret_text;
 

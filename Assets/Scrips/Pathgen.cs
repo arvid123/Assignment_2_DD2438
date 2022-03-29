@@ -32,11 +32,11 @@ namespace Assets.Scrips
             terrain_padding = tp;
             max_turning_velocity = mtv;
 
-            Vector3 start_pos = terrain_manager.myInfo.start_pos;
-            Vector3 goal_pos = terrain_manager.myInfo.goal_pos;
+            //Vector3 start_pos = terrain_manager.myInfo.start_pos;
+            //Vector3 goal_pos = terrain_manager.myInfo.goal_pos;
 
             my_path = new List<Vector3>();
-            UnityEngine.Debug.DrawRay(start_pos, Vector3.forward, Color.magenta, 1000f);
+            //UnityEngine.Debug.DrawRay(start_pos, Vector3.forward, Color.magenta, 1000f);
 
             friend_list = friends;
             enemy_list = enemies;

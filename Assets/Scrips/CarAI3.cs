@@ -65,13 +65,6 @@ namespace UnityStandardAssets.Vehicles.Car
                 //Debug.DrawLine(transform.position, obj.transform.position, Color.black, 10f);
             }
 
-            int i = 0;
-            for (int j = 0; j < enemy_list.Count; j++)
-            {
-                partitions[i].Add(friend_list.Count + j);
-                i = (i + 1) % 3;
-            }
-
             Pathgen pg1 = new Pathgen(terrain_manager, 4f, 5f, "car", enemy_list, friend_list);
             List<List<Vector3>> good_routes = pg1.vrpSolver();
 
