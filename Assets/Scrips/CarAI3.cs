@@ -270,8 +270,17 @@ namespace UnityStandardAssets.Vehicles.Car
                 steerAngle = -0.3f;
             }
 
+            bool is_reversing = Vector3.Angle(transform.forward, my_path[0] - transform.position) > 90;
 
-            if(backup || hit.distance < 5 || hitData_right_diag.distance < 4 || hitData_left_diag.distance < 4){ // Already collided, back up
+            if (is_reversing) {
+                reversing = -1;
+                if (Vector3.Dot(my_velocity, transform.forward) < 0) {
+                    //Moving backwards, invert tires
+                    steerAngle = -steerAngle;
+                }
+            }
+
+            if (backup || hit.distance < 5 || hitData_right_diag.distance < 4 || hitData_left_diag.distance < 4){ // Already collided, back up
                 Debug.Log("Backing up");
                 backup = true;
                 if(hit.distance > 8 && hitData_right_diag.distance > 5 && hitData_left_diag.distance > 5){
