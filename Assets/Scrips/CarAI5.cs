@@ -269,6 +269,7 @@ namespace UnityStandardAssets.Vehicles.Car
                             square.transform.position = new Vector3(terrain_manager.myInfo.get_x_pos(i), 0.01f, terrain_manager.myInfo.get_z_pos(j));
                             square.transform.localScale = new Vector3(x_step, 0.01f, z_step);
                             danger_squares.Add(square);
+                            //Debug.Log("Added a square");
                             Color c = Color.blue;
                             switch (terrain_manager.myInfo.traversability[i, j]) {
                                 case 0:
@@ -286,7 +287,7 @@ namespace UnityStandardAssets.Vehicles.Car
                             }
                             c.a = 0.5f;
                             square.GetComponent<Renderer>().material.color = c;
-                            square.SetActive(false);
+                            //square.SetActive(false);
                         }
                     }
                 }
