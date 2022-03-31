@@ -21,6 +21,8 @@ namespace UnityStandardAssets.Vehicles.Car
         Vector3 my_old_position;
         bool backup = false;
         float[,] map;
+        bool prior_to_root = true;
+        Vector3 tree_root_position = Vector3.zero;
 
         //Function for
         List<TreeNode> ComputeSingleRootCover(Vector3 root_position, List<Edge> edge_list, List<Vector3> vertices, float B) {
@@ -201,6 +203,7 @@ namespace UnityStandardAssets.Vehicles.Car
             float sum = 0f;
             foreach(var child in node.children) {
                 sum += w(child) + Vector3.Distance(node.position, child.position);
+                //sum += w(child) + Mathf.Abs(Vector3.Dot((node.position - child.position), Vector3.right));
             }
 
             return sum;
@@ -525,10 +528,10 @@ namespace UnityStandardAssets.Vehicles.Car
             friends = GameObject.FindGameObjectsWithTag("Player");
 
             List<TreeNode> k_cover = null;
-            /*float max = 100f;
+            float max = 100000f;
             float min = 0f;
             float B = 0f;
-            while (max - min > 1f) {
+            while (max - min > 10f) {
                 B = (max - min) / 2f + min;
                 List<TreeNode> k_cover_candidate = KTreeCover_new(terrain_manager.myInfo, B);
                 int num_trees = k_cover_candidate.Count;
@@ -549,8 +552,8 @@ namespace UnityStandardAssets.Vehicles.Car
             float lower_bound = B;
 
             min = 0f;
-            max = 100f;
-            while (max - min > 1f) {
+            max = 100000f;
+            while (max - min > 10f) {
                 B = (max - min) / 2f + min;
                 List<TreeNode> k_cover_candidate = KTreeCover_new(terrain_manager.myInfo, B);
                 int num_trees = k_cover_candidate.Count;
@@ -598,11 +601,11 @@ namespace UnityStandardAssets.Vehicles.Car
             Debug.Log("Num of trees: " + best_candidate.Count);
             foreach(TreeNode tree in best_candidate) {
                 Debug.Log(w(tree));
-            }*/
+            }//*/
 
 
             // TODO: Make car move beside the graph, fix the binary search, and adjust weights to euclidean
-            List<TreeNode> best_candidate = KTreeCover_new(terrain_manager.myInfo, 750f);
+            //List<TreeNode> best_candidate = KTreeCover_new(terrain_manager.myInfo, 750f);
 
             Color[] colors = new Color[] { Color.blue, Color.red, Color.green, Color.yellow, Color.cyan, Color.magenta };
             for (int i = 0; i < best_candidate.Count; i++) {
@@ -616,20 +619,26 @@ namespace UnityStandardAssets.Vehicles.Car
                 GenPath(best_candidate[i], paths[i]);
             }
 
-            my_path = null;
+            my_path = new List<Vector3>();
             Color color = Color.cyan;
 
             switch(name) {
                 case "ArmedCar":
-                    my_path = paths[0];
+                    PathToRoot(best_candidate[0].position, my_path);
+                    my_path.AddRange(paths[0]);
+                    tree_root_position = paths[0][0];
                     color = Color.red;
                     break;
                 case "ArmedCar (1)":
-                    my_path = paths[1];
+                    PathToRoot(best_candidate[1].position, my_path);
+                    my_path.AddRange(paths[1]);
+                    tree_root_position = paths[1][0];
                     color = Color.green;
                     break;
                 case "ArmedCar (2)":
-                    my_path = paths[2];
+                    PathToRoot(best_candidate[2].position, my_path);
+                    my_path.AddRange(paths[2]);
+                    tree_root_position = paths[2][0];
                     color = Color.blue;
                     break;
                 default:
@@ -658,6 +667,17 @@ namespace UnityStandardAssets.Vehicles.Car
             //*/
         }
 
+        // Add path from starting position to root position.
+        void PathToRoot(Vector3 root, List<Vector3> acc){
+            List<Vector3> goal = new List<Vector3>();  
+            goal.Add(root);
+            List<Vector3> start = new List<Vector3>();
+            start.Add(transform.position);
+            Pathgen pathgen = new Pathgen(terrain_manager, 4f, 0f, "car", goal, start);
+            acc.AddRange(pathgen.getBezierPathList(0, 1));
+        }
+
+        // Add tree traversal path
         void GenPath(TreeNode root, List<Vector3> acc) {
             acc.Add(root.position);
             
@@ -757,16 +777,26 @@ namespace UnityStandardAssets.Vehicles.Car
 
             //Debug.Log("curr" + current_position);
             //Debug.Log("target" + target_position);
+            if(prior_to_root){
+                if(my_path[0] == tree_root_position){
+                    prior_to_root = false;
+                }
+            }
+
             if (position_error.magnitude < 6) {
                 //if(Math.Abs(position_error.x) < x_size/2 && Math.Abs(position_error.z) < z_size/2 && my_path.Count() > 1){
                 Vector3 previous_point = my_path[0];
                 if(my_path.Count > 1) {
                     my_path.RemoveAt(0);
                 }
-                else {
-                    my_path = paths[3];
+                else { // Route to the start of leftover tree and traverse it
+                    tree_root_position = paths[3][0];
+                    my_path = new List<Vector3>();
+                    PathToRoot(tree_root_position, my_path);
+                    my_path.AddRange(paths[3]);
+                    prior_to_root = true;
                 }
-                if (map[terrain_manager.myInfo.get_i_index(my_path[0].x), terrain_manager.myInfo.get_j_index(my_path[0].z)] == 0) {
+                if (map[terrain_manager.myInfo.get_i_index(my_path[0].x), terrain_manager.myInfo.get_j_index(my_path[0].z)] == 0 || prior_to_root) {
                     target_position = my_path[0];
                 } else {
                     Vector3 forward_dir = (my_path[0] - previous_point).normalized;
@@ -800,7 +830,7 @@ namespace UnityStandardAssets.Vehicles.Car
             }
 
             if (hitData_left_diag.distance < diag_margin && steerAngle < 0) { // Close to left wall
-                                                                              //acceleration_h = acceleration_h + (desired_distance - hitData_r.distance);
+                //acceleration_h = acceleration_h + (desired_distance - hitData_r.distance);
 
                 if (hitData_right_diag.distance < diag_margin && steerAngle > 0) { // Close to left wall
                     //acceleration_h = acceleration_h + (desired_distance - hitData_r.distance);
