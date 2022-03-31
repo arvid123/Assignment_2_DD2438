@@ -228,6 +228,7 @@ namespace UnityStandardAssets.Vehicles.Car
         List<GameObject> sphere_list = new List<GameObject>();
 
         private void Start() {
+            Time.timeScale = 6f;
             GameObject[] enemies = GameObject.FindGameObjectsWithTag("Enemy");
 
             List<Vector3> my_pos = new List<Vector3>();

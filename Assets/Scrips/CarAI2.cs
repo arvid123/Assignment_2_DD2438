@@ -152,6 +152,8 @@ namespace UnityStandardAssets.Vehicles.Car
 
         private void Start()
         {
+            Time.timeScale = 6f;
+
             my_old_position = transform.position;
             // get the car controller
             m_Car = GetComponent<CarController>();
