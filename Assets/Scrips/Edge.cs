@@ -13,7 +13,7 @@ namespace Assets.Scrips
         public Edge(Vector3 A, Vector3 B) {
             this.A = A;
             this.B = B;
-            weight = Vector3.Distance(A, B);
+            weight = Vector3.Dot(A - B, Vector3.right);
         }
     }
 }

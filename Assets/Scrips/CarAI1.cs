@@ -597,7 +597,7 @@ namespace UnityStandardAssets.Vehicles.Car
                     Debug.Log("Better candidate found with B = " + i);
                 }
             }
-            best_candidate = KTreeCover_new(terrain_manager.myInfo, 500f);
+            //best_candidate = KTreeCover_new(terrain_manager.myInfo, 500f);
             Debug.Log("Num of trees: " + best_candidate.Count);
             foreach(TreeNode tree in best_candidate) {
                 Debug.Log(w(tree));
