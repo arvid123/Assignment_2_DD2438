@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.44657838, g: 0.49641234, b: 0.57481676, a: 1}
+  m_IndirectSpecularColor: {r: 0.44657898, g: 0.4964133, b: 0.5748178, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -23289,12 +23289,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 458510685}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 771060689bb5646abb6c50f4f826fd1e, type: 3}
+  m_Script: {fileID: 11500000, guid: a5bd001522d0f5140982393507d17db0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   terrain_manager_game_object: {fileID: 153530180}
-  friends: []
-  enemies: []
+  terrain_manager: {fileID: 0}
 --- !u!114 &458510688
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -85007,12 +85006,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 1471962239}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 771060689bb5646abb6c50f4f826fd1e, type: 3}
+  m_Script: {fileID: 11500000, guid: a5bd001522d0f5140982393507d17db0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   terrain_manager_game_object: {fileID: 153530180}
-  friends: []
-  enemies: []
+  terrain_manager: {fileID: 0}
 --- !u!114 &1471962244
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -103094,12 +103092,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 1902951894}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 771060689bb5646abb6c50f4f826fd1e, type: 3}
+  m_Script: {fileID: 11500000, guid: a5bd001522d0f5140982393507d17db0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   terrain_manager_game_object: {fileID: 153530180}
-  friends: []
-  enemies: []
+  terrain_manager: {fileID: 0}
 --- !u!114 &1902951897
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -103626,6 +103623,7 @@ MonoBehaviour:
   number_of_turrets: 50
   number_of_extra_cars: 0
   random_seed: 7
+  completion_time: 0
   turret_text: {fileID: 2146854769}
   turret_list: []
   weak_turrets: 1
@@ -103998,12 +103996,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 1993684190}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 771060689bb5646abb6c50f4f826fd1e, type: 3}
+  m_Script: {fileID: 11500000, guid: a5bd001522d0f5140982393507d17db0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   terrain_manager_game_object: {fileID: 153530180}
-  friends: []
-  enemies: []
+  terrain_manager: {fileID: 0}
 --- !u!114 &1993684193
 MonoBehaviour:
   m_ObjectHideFlags: 0
