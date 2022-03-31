@@ -139,7 +139,7 @@ namespace UnityStandardAssets.Vehicles.Car
 
         private void Start()
         {
-            //Time.timeScale = 3f;
+            Time.timeScale = 4f;
             friends = GameObject.FindGameObjectsWithTag("Player");
             // get the car controller
             m_Car = GetComponent<CarController>();

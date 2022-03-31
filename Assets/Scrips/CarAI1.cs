@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 using Assets.Scrips;
+using Priority_Queue;
 
 namespace UnityStandardAssets.Vehicles.Car
 {
@@ -444,10 +445,13 @@ namespace UnityStandardAssets.Vehicles.Car
             }
         }
 
-        TreeNode MST(List<Vector3> Q, List<Edge> edges, Vector3 root_position) {
+        TreeNode MST(List<Vector3> Qprim, List<Edge> edges, Vector3 root_position) {
             List<Vector3> F = new List<Vector3>();
             List<Edge> EF = new List<Edge>();
-
+            SimplePriorityQueue<Vector3, float> Q = new SimplePriorityQueue<Vector3, float>();
+            foreach(Vector3 q in Qprim) {
+                Q.Enqueue(q, float.PositiveInfinity);
+            }
             // Create map of "cheapest" edges
             Dictionary<Vector3, Edge> E = new Dictionary<Vector3, Edge>();
             foreach (var vertex in Q) {
@@ -455,14 +459,7 @@ namespace UnityStandardAssets.Vehicles.Car
             }
             int total_vertices = Q.Count;
             while(Q.Count > 0){
-                Vector3 vertex = Vector3.zero;
-                for(int i = 0; i < Q.Count; i++) {
-                    vertex = Q[i];
-                    if(E[vertex] != null) {
-                        break;
-                    }
-                }
-                Q.Remove(vertex);
+                Vector3 vertex = Q.Dequeue();
                 F.Add(vertex);
                 if (E[vertex] == null) {
                     Debug.Log("Vertex " + vertex.x + ", " + vertex.z + " has no edge");
@@ -479,12 +476,14 @@ namespace UnityStandardAssets.Vehicles.Car
                 }
                 foreach (Edge neighbour in adjacents) {
                     if(neighbour.A == vertex) {
-                        if (Q.Contains(neighbour.B) && E[neighbour.B] == null){
+                        if (Q.Contains(neighbour.B) && Q.GetPriority(neighbour.B) > neighbour.weight){
+                            Q.UpdatePriority(neighbour.B, neighbour.weight);
                             E[neighbour.B] = neighbour;
                         }
                     }
                     else if(neighbour.B == vertex) {
-                        if (Q.Contains(neighbour.A) && E[neighbour.A] == null) {
+                        if (Q.Contains(neighbour.A) && Q.GetPriority(neighbour.A) > neighbour.weight) {
+                            Q.UpdatePriority(neighbour.A, neighbour.weight);
                             E[neighbour.A] = neighbour;
                         }
                     }
@@ -598,6 +597,7 @@ namespace UnityStandardAssets.Vehicles.Car
                     Debug.Log("Better candidate found with B = " + i);
                 }
             }
+            best_candidate = KTreeCover_new(terrain_manager.myInfo, 500f);
             Debug.Log("Num of trees: " + best_candidate.Count);
             foreach(TreeNode tree in best_candidate) {
                 Debug.Log(w(tree));
@@ -611,6 +611,7 @@ namespace UnityStandardAssets.Vehicles.Car
             for (int i = 0; i < best_candidate.Count; i++) {
                 //DrawTree(best_candidate[i], colors[i % colors.Length]);
             }
+            DrawTree(best_candidate[best_candidate.Count - 1], Color.yellow);
 
             // Generate path based on each root.
             // Assign self to path (lowest assignment takes leftover)
